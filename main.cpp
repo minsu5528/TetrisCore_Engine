@@ -1,4 +1,4 @@
-#include "MemoryTracker.h"
+#include "Core/Memory/MemoryTracker.h"
 
 int main() {
     // 1. 정상 할당 및 해제 테스트
