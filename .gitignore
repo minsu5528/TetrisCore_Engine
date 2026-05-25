@@ -2,14 +2,9 @@
 x64/
 Debug/
 Release/
-<<<<<<< HEAD
 *.obj
 *.exe
 *.pdb
 *.tlog
-=======
-*.exe
-*.obj
 *.user
 *.sln.docstates
->>>>>>> 5da7b9d (feat: implement Tetromino rotation, collision validation, and LUT)
