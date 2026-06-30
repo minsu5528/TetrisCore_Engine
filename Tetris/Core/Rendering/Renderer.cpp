@@ -1,5 +1,6 @@
 #include "Core/Rendering/Renderer.h"
 #include <iostream>
+#include <cstring>   // strlen 사용을 위해 추가
 
 Renderer::Renderer() : m_currentBuffer(0) {
     // 콘솔 화면 버퍼 2개 생성
