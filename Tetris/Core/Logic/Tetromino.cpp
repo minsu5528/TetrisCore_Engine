@@ -49,3 +49,10 @@ void Tetromino::CommitRotation(const Vector2 newTiles[4]) {
         m_localTiles[i] = newTiles[i];
     }
 }
+
+// 블록을 구성하는 4개의 작은 타일 배열 읽어오기
+void Tetromino::GetLocalTiles(Vector2 outTiles[4]) const {
+    for (int i = 0; i < 4; ++i) {
+        outTiles[i] = m_localTiles[i];
+    }
+}

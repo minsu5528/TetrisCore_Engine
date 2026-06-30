@@ -16,7 +16,7 @@ public:
     Tetromino(TetrominoType type);
 
     // [Getter & Setter] 절대 좌표 관리
-    Vector2 GetWorldPos() const { return m_worldPos; }
+    Vector2 GetWorldPos() const { return m_worldPos; };
     void SetWorldPos(const Vector2& pos) { m_worldPos = pos; }
 
     // [회전 시뮬레이션] 원본은 건드리지 않고 회전된 결과만 outTiles에 채워줌
@@ -24,4 +24,6 @@ public:
 
     // [회전 확정] 충돌 검사를 통과했을 때, 새로운 타일 좌표를 원본에 덮어씀
     void CommitRotation(const Vector2 newTiles[4]);
+
+    void GetLocalTiles(Vector2 outTiles[4]) const;
 };

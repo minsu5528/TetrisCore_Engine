@@ -124,18 +124,22 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Core\Input\Input.cpp" />
     <ClCompile Include="Core\Logic\Board.cpp" />
     <ClCompile Include="Core\Logic\Tetromino.cpp" />
+    <ClCompile Include="Core\Rendering\Renderer.cpp" />
     <ClCompile Include="Core\Time\Timer.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Core\Input\Input.h" />
     <ClInclude Include="Core\Logic\Board.h" />
     <ClInclude Include="Core\Logic\Tetromino.h" />
     <ClInclude Include="Core\Math\Matrix2x2.h" />
     <ClInclude Include="Core\Math\Vector2.h" />
     <ClInclude Include="Core\Memory\MemoryTracker.h" />
     <ClInclude Include="Core\Memory\ObjectPool.h" />
+    <ClInclude Include="Core\Rendering\Renderer.h" />
     <ClInclude Include="Core\Time\Timer.h" />
   </ItemGroup>
   <ItemGroup>

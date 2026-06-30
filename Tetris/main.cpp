@@ -1,39 +1,173 @@
 #include <iostream>
-#include <windows.h> // Sleep 함수 사용을 위해 필요
+#include <windows.h>
+#include <cstdlib>
+#include <ctime>
 #include "Core/Time/Timer.h"
+#include "Core/Input/Input.h"
+#include "Core/Rendering/Renderer.h"
+#include "Core/Logic/Board.h"
+#include "Core/Logic/Tetromino.h"
 
 int main() {
-    // 1. 게임 루프 시작 전에 타이머 생성 (이때 QPC 초기 시간과 주파수가 세팅됨)
+    srand(static_cast<unsigned int>(time(nullptr)));
+
     Timer timer;
+    Renderer renderer;
+    Board gameBoard;
 
-    // 블록이 떨어지기까지 흘러간 시간을 계속 모아둘 '누적기' 변수
+    Tetromino currentBlock(static_cast<TetrominoType>(rand() % 7));
+    currentBlock.SetWorldPos(Vector2(4, 0));
+
     float dropTimer = 0.0f;
+    float inputDelay = 0.0f;
 
-    std::cout << "=== 실시간 테트리스 엔진 시작 ===\n";
+    // 화면 출력을 전체적으로 띄워줄 오프셋(여백) 변수
+    const int offsetX = 2;
+    const int offsetY = 1;
 
-    // 2. 무한 루프 (이것이 바로 게임 엔진의 심장!)
-    while (true) {
-        // [1단계] 시간 갱신
+    bool isGameOver = false;
+
+    while (!isGameOver) {
         timer.Tick();
-        float deltaTime = timer.GetDeltaTime();
+        float dt = timer.GetDeltaTime();
+        dropTimer += dt;
+        inputDelay += dt;
 
-        // [2단계] 시간 누적 및 로직 업데이트
-        dropTimer += deltaTime; // 프레임마다 아주 미세한 시간(예: 0.016초)을 계속 더함
+        // [입력 처리]
+        if (inputDelay > 0.08f) {
+            KeyCode key = Input::GetKeyDown();
+            if (key != KeyCode::None) {
+                Vector2 currentPos = currentBlock.GetWorldPos();
+                Vector2 tiles[4];
+                currentBlock.GetLocalTiles(tiles);
 
-        // 누적된 시간이 1.0초(1000ms)를 넘어가면 블록 낙하 이벤트 발생!
+                if (key == KeyCode::Left) {
+                    Vector2 nextPos(currentPos.GetRoundedX() - 1, currentPos.GetRoundedY());
+                    if (gameBoard.IsValidPosition(nextPos, tiles)) {
+                        currentBlock.SetWorldPos(nextPos);
+                    }
+                }
+                else if (key == KeyCode::Right) {
+                    Vector2 nextPos(currentPos.GetRoundedX() + 1, currentPos.GetRoundedY());
+                    if (gameBoard.IsValidPosition(nextPos, tiles)) {
+                        currentBlock.SetWorldPos(nextPos);
+                    }
+                }
+                else if (key == KeyCode::Down) {
+                    dropTimer = 1.0f;
+                }
+                else if (key == KeyCode::Up) {
+                    Vector2 rotatedTemp[4];
+                    currentBlock.GetRotatedTiles(rotatedTemp);
+                    if (gameBoard.IsValidPosition(currentPos, rotatedTemp)) {
+                        currentBlock.CommitRotation(rotatedTemp);
+                    }
+                }
+                else if (key == KeyCode::Space) {
+                    Vector2 hardDropPos = currentPos;
+                    while (true) {
+                        Vector2 nextPos(hardDropPos.GetRoundedX(), hardDropPos.GetRoundedY() + 1);
+                        if (gameBoard.IsValidPosition(nextPos, tiles)) {
+                            hardDropPos = nextPos;
+                        }
+                        else {
+                            break;
+                        }
+                    }
+                    currentBlock.SetWorldPos(hardDropPos);
+                    dropTimer = 1.0f;
+                }
+                inputDelay = 0.0f;
+            }
+        }
+
+        // [로직 업데이트]
         if (dropTimer >= 1.0f) {
-            std::cout << "틱! 1초가 지나서 블록이 한 칸 떨어집니다.\n";
+            Vector2 currentPos = currentBlock.GetWorldPos();
+            Vector2 nextPos(currentPos.GetRoundedX(), currentPos.GetRoundedY() + 1);
+            Vector2 tiles[4];
+            currentBlock.GetLocalTiles(tiles);
 
-            // 이벤트가 터졌으니 누적기를 다시 0으로 초기화해서 다음 1초를 잼
+            if (gameBoard.IsValidPosition(nextPos, tiles)) {
+                currentBlock.SetWorldPos(nextPos);
+            }
+            else {
+                for (int i = 0; i < 4; ++i) {
+                    int bx = currentPos.GetRoundedX() + tiles[i].GetRoundedX();
+                    int by = currentPos.GetRoundedY() + tiles[i].GetRoundedY();
+                    gameBoard.SetValue(bx, by, 1);
+                }
+
+                gameBoard.ClearLines();
+
+                // 새 블록 생성
+                currentBlock = Tetromino(static_cast<TetrominoType>(rand() % 7));
+                currentBlock.SetWorldPos(Vector2(4, 0));
+
+                // === [게임 오버 체크] 새 블록이 나오자마자 부딪힌다면? ===
+                Vector2 newTiles[4];
+                currentBlock.GetLocalTiles(newTiles);
+                if (!gameBoard.IsValidPosition(Vector2(4, 0), newTiles)) {
+                    isGameOver = true; // 메인 루프 탈출!
+                }
+            }
             dropTimer -= 1.0f;
         }
 
-        // [3단계] 렌더링 (지금은 콘솔 출력으로 대체)
-        // ...
+        // [렌더링]
+        renderer.Clear();
 
-        // CPU가 100% 혹사당하는 걸 막기 위해 매 프레임마다 아주 잠깐(1ms) 휴식
+        // 1. 맵 테두리 (벽) 그리기
+        for (int y = 0; y < 20; ++y) {
+            renderer.DrawTextAt(offsetX - 1, offsetY + y, "▩"); // 왼쪽 벽
+            renderer.DrawTextAt(offsetX + 10, offsetY + y, "▩"); // 오른쪽 벽
+        }
+        for (int x = -1; x <= 10; ++x) {
+            renderer.DrawTextAt(offsetX + x, offsetY + 20, "▩"); // 바닥 벽
+        }
+
+        // 2. 보드 내부 블록 그리기
+        for (int y = 0; y < 20; ++y) {
+            for (int x = 0; x < 10; ++x) {
+                if (gameBoard.GetValue(x, y) == 1) {
+                    renderer.DrawTextAt(offsetX + x, offsetY + y, "■");
+                }
+                else {
+                    renderer.DrawTextAt(offsetX + x, offsetY + y, "  ");
+                }
+            }
+        }
+
+        // 3. 현재 떨어지고 있는 활성화 블록 그리기
+        Vector2 pos = currentBlock.GetWorldPos();
+        Vector2 tiles[4];
+        currentBlock.GetLocalTiles(tiles);
+        for (int i = 0; i < 4; ++i) {
+            int drawX = pos.GetRoundedX() + tiles[i].GetRoundedX();
+            int drawY = pos.GetRoundedY() + tiles[i].GetRoundedY();
+            renderer.DrawTextAt(offsetX + drawX, offsetY + drawY, "▣");
+        }
+
+        // 4. UI 렌더링
+        renderer.DrawTextAt(offsetX + 14, offsetY + 1, "=== C++ TETRIS ===");
+        renderer.DrawTextAt(offsetX + 14, offsetY + 3, "[ CONTROLS ]");
+        renderer.DrawTextAt(offsetX + 14, offsetY + 5, "Left/Right : Move");
+        renderer.DrawTextAt(offsetX + 14, offsetY + 6, "Down       : Soft Drop");
+        renderer.DrawTextAt(offsetX + 14, offsetY + 7, "Up         : Rotate");
+        renderer.DrawTextAt(offsetX + 14, offsetY + 8, "Space      : Hard Drop");
+
+        renderer.Render();
         Sleep(1);
     }
+
+    // === 게임 오버 연출 ===
+    renderer.Clear();
+    renderer.DrawTextAt(5, 10, "===========================");
+    renderer.DrawTextAt(5, 12, "      G A M E   O V E R    ");
+    renderer.DrawTextAt(5, 14, "===========================");
+    renderer.Render();
+
+    Sleep(3000); // 3초 대기 후 프로그램 종료
 
     return 0;
 }
